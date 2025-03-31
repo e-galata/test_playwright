@@ -2,6 +2,7 @@ import json
 import pytest
 import requests
 from schemas.user import SCHEMAS
+from typing import Optional, Dict, Any
 from pydantic import ValidationError
 
 def process_to_valid_json(body):
@@ -50,23 +51,77 @@ def api_user(request):
     extra_fields = set(body.keys()) - set(schema_class.model_fields.keys())
     if extra_fields:
         warning_msg = f"⚠️  Переданы несуществующие поля в '{schema_name}': {extra_fields}"
-        warnings.warn(warning_msg, UserWarning)
-        print(f"\n\033[93m{warning_msg}\033[0m")  # Жёлтый цвет в консоли
+        pytest.fail(warning_msg)
     
-    # Генерируем данные с учетом переданных полей
     try:
         user_data = schema_class(**body).model_dump()
-    
-    # Создаем пользователя
-    #requests.post("https://api.example.com/users", json=user_data)
-        print(f"\nДелаем запрос на создание пользователя с полями\n {user_data}")
-    
         yield user_data  # Возвращаем данные в тест
     
     except ValidationError as e:
         pytest.fail(f"Ошибка валидации: {e}")
 
-    finally:
-    # Удаляем пользователя
-    # requests.delete(f"https://api.example.com/users/{user_data['email']}")
-        print(f"\nУдаляем пользователя с {user_data['email']}")
+def _make_api_request(url, method, expected_status, payload=None, timeout=10):
+    """
+    Универсальный обработчик API запросов.
+    Возвращает данные из ответа или завершает тест с ошибкой при проблемах.
+    """
+    try:
+        # Выполняем запрос
+        response = requests.request(
+            method=method.upper(),
+            url=url,
+            json=payload,
+            timeout=timeout
+        )
+
+        # Проверка статус-кода
+        if response.status_code != expected_status:
+            pytest.fail(
+                f"Неверный статус-код ответа.\n"
+                f"Ожидалось: {expected_status}\n"
+                f"Получено: {response.status_code}\n"
+                f"URL: {method} {url}\n"
+                f"Ответ: {response.text[:500]}"
+            )
+
+        # Парсинг JSON
+        try:
+            # Проверяем, есть ли содержимое в ответе
+            if not response.content:
+                return None
+    
+            response_data = response.json()
+    
+            # Расширенная проверка на "пустые" данные
+            if response_data is None or response_data == "" or response_data in ([], {}, ""):
+                return None
+        
+        except ValueError as e:
+            pytest.fail(
+                f"Невалидный JSON в ответе. Ошибка: {str(e)}\n"
+                f"URL: {method} {url}\n"
+                f"Ответ: {response.text[:500]}"
+            ) 
+
+        # Возвращаем распарсенные данные
+        return response_data
+
+    except requests.exceptions.Timeout:
+        pytest.fail(
+            f"Превышено время ожидания ({timeout} сек).\n"
+            f"URL: {method} {url}"
+        )
+
+    except requests.exceptions.RequestException as e:
+        pytest.fail(
+            f"Ошибка при выполнении запроса.\n"
+            f"URL: {method} {url}\n"
+            f"Ошибка: {str(e)}"
+        )
+
+@pytest.fixture
+def temporary_test_user():
+     create = _make_api_request(url="https://reqres.in/api/users",method="POST",payload={"name":"test","job":"qa"},expected_status=201)
+     assert "id" in create
+     yield
+     delete = _make_api_request(url="https://reqres.in/api/users/"+create["id"],method="DELETE",expected_status=204)

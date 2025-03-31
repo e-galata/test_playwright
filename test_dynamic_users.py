@@ -1,5 +1,5 @@
 import pytest
-from playwright.sync_api import Page, expect
+from playwright.sync_api import expect
 
 @pytest.mark.parametrize("api_user", [
     {
@@ -14,11 +14,13 @@ from playwright.sync_api import Page, expect
         }
     }
 ], indirect=True)
-def test_dynamic_user_creation(page: Page, api_user, mock_api):
+def test_dynamic_user_creation(page, api_user, mock_api, temporary_test_user):
     
     # Мокаем API логина
     mock_api("**/frame/login-submit", method="POST", body='{"success": false, "message": "mocked shmoked"}')
-    
+
+    # Создаем пользователя, не явно, в фикстуре, после теста он сам удалится
+
     # Тест логина
     page.goto("https://id.skyeng.ru/login")
     page.get_by_text("Войти с помощью пароля", exact=True).click()
