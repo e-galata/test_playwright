@@ -6,7 +6,7 @@ fake = Faker()
 
 class BaseUser(BaseModel):
     class ConfigDict:
-        extra = "forbid"  # Запрет лишних полей
+        extra = "forbid"  # Forbid extra fields
 
 class PublicUserSchema(BaseUser):
     name: str = Field(default_factory=fake.name)

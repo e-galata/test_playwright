@@ -14,7 +14,7 @@ from playwright.sync_api import expect
         }
     }
 ], indirect=True)
-def test_dynamic_user_creation(page, api_user, mock_api, temporary_test_user):
+def test_dynamic_user_creation(page, api_user, mock_api, create_and_delete_test_user):
     
     # Мокаем API логина
     mock_api("**/frame/login-submit", method="POST", body='{"success": false, "message": "mocked shmoked"}')
