@@ -19,6 +19,14 @@ Automated test framework for web applications featuring:
 git clone https://github.com/e-galata/test_playwright.git
 cd test_playwright
 ```
+
+If you have Docker, execute the following command. Allure report will be available on localhost:8080  
+Ctrl+c to terminate the Allure report server and stop the container
+```bash
+docker-compose up --build
+```
+OR
+
 2. Create virtual env (Python 3.10+ required). Linux/Mac
 ```bash
 python -m venv venv
