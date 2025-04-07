@@ -1,0 +1,51 @@
+name: Run Tests on Push to Main
+
+# Триггер для запуска pipeline
+on:
+  push:
+    branches:
+      - main  # Запуск только при пуше в main ветку
+
+jobs:
+  test:
+    runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
+
+    steps:
+      # 1. Клонирование репозитория
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Настройка Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'  # Указываем версию Python
+
+      # 3. Создание виртуального окружения и установка зависимостей
+      - name: Create virtual environment and install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install --with-deps
+
+      # 4. Запуск тестов
+      - name: Run tests
+        run: |
+          pytest -s -v ./tests --alluredir=./allureres --browser=chromium --browser=firefox --browser=webkit
+        env:
+          PYTHONUNBUFFERED: 1  # Для вывода логов в реальном времени
+
+      # 5. Публикация результатов Allure (опционально)
+      - name: Generate Allure report
+        run: |
+          sudo apt-get update && sudo apt-get install -y allure
+          allure serve ./allureres -p 8080 || echo "Allure report generated."
+
+      # 6. Отмена пуша при неудачных тестах
+      - name: Fail if tests fail
+        if: failure()  # Если предыдущие шаги завершились с ошибкой
+        run: |
+          echo "Tests failed. Push to main branch is canceled."
+          exit 1  # Принудительно завершаем pipeline с ошибкой
