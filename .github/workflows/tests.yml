@@ -1,4 +1,4 @@
-name: Run Tests on Push to Main
+name: Run Tests with Docker
 
 on:
   push:
@@ -14,34 +14,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Настройка Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'  # Используем доступную версию Python
+      # 2. Сборка Docker образа
+      - name: Build Docker image
+        run: docker build -t test-playwright .
 
-      # 3. Создание виртуального окружения и установка зависимостей
-      - name: Create virtual environment and install dependencies
+      # 3. Запуск тестов в Docker контейнере
+      - name: Run tests in Docker container
         run: |
-          python -m venv venv
-          venv/bin/pip install --upgrade pip
-          venv/bin/pip install -r requirements.txt
-          venv/bin/playwright install --with-deps
+          docker run --rm \
+            -v $(pwd)/allureres:/app/allureres \
+            -p 8080:8080 \
+            test-playwright \
+            pytest -s -v ./tests --alluredir=./allureres --browser=chromium --browser=firefox --browser=webkit
 
-      # 4. Запуск тестов
-      - name: Run tests
+      # 4. Проверка результатов тестов
+      - name: Check test results
+        id: check-tests
         run: |
-          venv/bin/pytest -s -v ./tests --alluredir=./allureres --browser=chromium --browser=firefox --browser=webkit
-        env:
-          PYTHONUNBUFFERED: 1
+          if [ $? -ne 0 ]; then
+            echo "Tests failed."
+            exit 1
+          else
+            echo "Tests passed successfully."
+          fi
 
-      # 5. Генерация отчета Allure (опционально)
-      - name: Generate Allure report
-        run: |
-          sudo apt-get update && sudo apt-get install -y allure
-          allure serve ./allureres -p 8080 || echo "Allure report generated."
-
-      # 6. Отмена пуша при неудачных тестах
+      # 5. Отмена пуша при неудачных тестах
       - name: Fail if tests fail
         if: failure()
         run: |
