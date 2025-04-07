@@ -1,0 +1,10 @@
+services:
+  test_playwright:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./allureres:/app/allureres
+    environment:
+      - ALLURE_NO_OPEN_BROWSER=true
+      - PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1

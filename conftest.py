@@ -204,3 +204,15 @@ def pytest_fixture_setup(fixturedef, request):
     outcome = yield
     if fixturedef.func.__name__ == "create_and_delete_test_user":
         fixturedef.func = fixture_with_retry(fixturedef.func)
+
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args):
+    """Overriding browser context arguments"""
+    return {
+        **browser_context_args,  # Сохраняем существующие аргументы
+        "locale": "ru-RU",  # Устанавливаем русский язык
+        "timezone_id": "Europe/Moscow",  # Часовой пояс
+        "geolocation": {"latitude": 55.7558, "longitude": 37.6173},  # Геолокация (Москва)
+        "permissions": ["geolocation"],  # Разрешения
+        "extra_http_headers": {"Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7"},  # Язык HTTP-запросов
+    }
