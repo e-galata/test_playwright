@@ -39,5 +39,25 @@ playwright install
 
 ## 🚀 Run tests
 ```bash
-pytest -s -v ./tests --headed
+pytest -s -v ./tests --headed --alluredir=./allureres
+```
+
+## Also install Allure CLI for reports:
+
+macOS:
+```bash
+brew install allure
+```
+Linux:
+```bash
+sudo apt install allure
+```
+Windows:
+```bash 
+scoop install allure
+```
+
+View the repots with command:
+```bash
+allure serve ./allureres
 ```
