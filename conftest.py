@@ -1,3 +1,5 @@
+import allure
+import time
 import json
 import pytest
 import requests
@@ -157,3 +159,41 @@ def create_and_delete_test_user():
         method="DELETE",
         expected_status=204
     )
+
+def retry(attempts=3, delay=1):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    print(f"Attempt {attempt + 1} failed: {e}")
+                    if attempt == attempts - 1:
+                        raise Exception("All retry attempts failed")
+                    time.sleep(delay)
+        return wrapper
+    return decorator
+
+def fixture_with_retry(fixture_func, attempts=3, delay=1):
+    @retry(attempts=attempts, delay=delay)
+    def wrapper(*args, **kwargs):
+        return fixture_func(*args, **kwargs)
+    return wrapper
+
+@pytest.fixture(autouse=True)
+def attach_screenshot_on_failure(request, page):
+    yield
+    if request.node.rep_call.failed:
+        with allure.step("Attach screenshot on failure"):
+            allure.attach(
+                page.screenshot(),
+                name="Failure Screenshot",
+                attachment_type=allure.attachment_type.PNG
+            )
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    setattr(item, f"rep_{report.when}", report)

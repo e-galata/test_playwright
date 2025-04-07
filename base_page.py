@@ -1,4 +1,16 @@
-class BasePage:
+import allure
+
+class AllureStepMeta(type):
+    """
+    Метакласс для автоматического добавления allure.step ко всем методам класса.
+    """
+    def __new__(cls, name, bases, dct):
+        for attr_name, attr_value in dct.items():
+            if callable(attr_value) and not attr_name.startswith("__"):
+                dct[attr_name] = allure.step(attr_value.__doc__)(attr_value)
+        return super().__new__(cls, name, bases, dct)
+
+class BasePage(metaclass=AllureStepMeta):
     '''
     Base class for any page of the tests
     '''
@@ -8,10 +20,12 @@ class BasePage:
         self.page = page
     
     def goto(self, path=""):
+        """Go to the page"""
         self.page.goto(f"{self.BASE_URL}{path}")
         return self
 
     def page_loaded(self, method="load"):
+        """Method to wait when page loaded"""
         self.page.wait_for_load_state(method)
         return self
 

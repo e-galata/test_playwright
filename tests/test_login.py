@@ -1,3 +1,4 @@
+import allure
 import pytest
 from pages.login_page import LoginPage
 from messages.login_messages import LoginMessages
@@ -15,6 +16,10 @@ from messages.login_messages import LoginMessages
         }
     }
 ], indirect=True)
+@allure.feature("Login functionality")
+@allure.story("Negative login scenarios")
+@allure.title("Verify error message for invalid credentials")
+@allure.severity(allure.severity_level.NORMAL)
 def test_login(page, api_user, mock_api, create_and_delete_test_user):
     '''
     page - a fixture contains the page context with which we will interact.
