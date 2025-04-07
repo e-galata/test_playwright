@@ -3,13 +3,14 @@ import time
 import json
 import pytest
 import requests
+from functools import wraps
 from schemas.user import SCHEMAS
 from pydantic import ValidationError
 
 def process_to_valid_json(body):
-    '''
+    """
     Getting ready string to be json, replace boolean words to compatible
-    '''
+    """
     if isinstance(body, str):
         # Replace (from → to)
         replacements = {
@@ -23,11 +24,11 @@ def process_to_valid_json(body):
 
 @pytest.fixture
 def mock_api(page):
-    '''
+    """
     Fixture to mock REST api, gets url_pattern and params, execute add_mock that
     will return page.route. Method, action, status have a defualt value,
     can abort api request. In body might be string like a dict
-    '''
+    """
     def add_mock(url_pattern, **kwargs):
         page.route(url_pattern, _create_mock_handler(**kwargs))
     return add_mock
@@ -197,3 +198,9 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
     setattr(item, f"rep_{report.when}", report)
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_fixture_setup(fixturedef, request):
+    outcome = yield
+    if fixturedef.func.__name__ == "create_and_delete_test_user":
+        fixturedef.func = fixture_with_retry(fixturedef.func)
