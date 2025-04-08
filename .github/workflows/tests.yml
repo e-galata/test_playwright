@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Сборка Docker образа (с кэшированием)
+      # 2. Сборка Docker образа с кэшированием
       - name: Cache Docker layers
         uses: actions/cache@v3
         with:
@@ -26,7 +26,7 @@ jobs:
       - name: Build Docker image
         run: docker build -t test-playwright .
 
-      # 3. Запуск тестов в Docker контейнере (без allure serve)
+      # 3. Запуск тестов
       - name: Run tests
         run: |
           docker run --rm \
@@ -34,16 +34,16 @@ jobs:
             test-playwright \
             pytest -s -v ./tests --alluredir=./allureres --browser=chromium --browser=firefox --browser=webkit
 
-      # 4. Сохранение артефактов
+      # 4. Сохранение артефактов (исправленная версия)
       - name: Upload Allure report
-        if: always()  # Сохраняем отчет даже если тесты упали
-        uses: actions/upload-artifact@v3
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: allure-report
           path: ./allureres/
           retention-days: 7
 
-      # 5. Проверка результатов тестов
+      # 5. Проверка результатов
       - name: Check test results
         if: ${{ failure() }}
         run: |
