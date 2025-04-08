@@ -12,35 +12,40 @@ jobs:
     steps:
       # 1. Клонирование репозитория
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2. Сборка Docker образа
+      # 2. Сборка Docker образа (с кэшированием)
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /var/lib/docker
+          key: ${{ runner.os }}-docker-${{ hashFiles('Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
       - name: Build Docker image
         run: docker build -t test-playwright .
 
-      # 3. Запуск тестов в Docker контейнере
-      - name: Run tests in Docker container
+      # 3. Запуск тестов в Docker контейнере (без allure serve)
+      - name: Run tests
         run: |
           docker run --rm \
             -v $(pwd)/allureres:/app/allureres \
-            -p 8080:8080 \
             test-playwright \
             pytest -s -v ./tests --alluredir=./allureres --browser=chromium --browser=firefox --browser=webkit
 
-      # 4. Проверка результатов тестов
-      - name: Check test results
-        id: check-tests
-        run: |
-          if [ $? -ne 0 ]; then
-            echo "Tests failed."
-            exit 1
-          else
-            echo "Tests passed successfully."
-          fi
+      # 4. Сохранение артефактов
+      - name: Upload Allure report
+        if: always()  # Сохраняем отчет даже если тесты упали
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report
+          path: ./allureres/
+          retention-days: 7
 
-      # 5. Отмена пуша при неудачных тестах
-      - name: Fail if tests fail
-        if: failure()
+      # 5. Проверка результатов тестов
+      - name: Check test results
+        if: ${{ failure() }}
         run: |
-          echo "Tests failed. Push to main branch is canceled."
+          echo "::error::Tests failed. Push to main branch rejected."
           exit 1
