@@ -14,19 +14,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Сборка Docker образа с кэшированием
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /var/lib/docker
-          key: ${{ runner.os }}-docker-${{ hashFiles('Dockerfile') }}
-          restore-keys: |
-            ${{ runner.os }}-docker-
+      # 2. Настройка Docker Buildx (вместо кэширования /var/lib/docker)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
+      # 3. Сборка Docker образа с кэшированием через Buildx
       - name: Build Docker image
-        run: docker build -t test-playwright .
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          tags: test-playwright:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      # 3. Запуск тестов
+      # 4. Запуск тестов
       - name: Run tests
         run: |
           docker run --rm \
@@ -34,7 +35,7 @@ jobs:
             test-playwright \
             pytest -s -v ./tests --alluredir=./allureres --browser=chromium --browser=firefox --browser=webkit
 
-      # 4. Сохранение артефактов (исправленная версия)
+      # 5. Сохранение артефактов
       - name: Upload Allure report
         if: always()
         uses: actions/upload-artifact@v4
@@ -43,7 +44,7 @@ jobs:
           path: ./allureres/
           retention-days: 7
 
-      # 5. Проверка результатов
+      # 6. Проверка результатов
       - name: Check test results
         if: ${{ failure() }}
         run: |
