@@ -14,28 +14,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Настройка Docker Buildx (вместо кэширования /var/lib/docker)
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      # 2. Сборка и тегирование образа
+      - name: Build and tag Docker image
+        run: |
+          docker build -t test-playwright .
+          docker tag test-playwright test-playwright:latest
 
-      # 3. Сборка Docker образа с кэшированием через Buildx
-      - name: Build Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          tags: test-playwright:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # 3. Проверка что образ создан
+      - name: Verify Docker image
+        run: docker images
 
-      # 4. Запуск тестов
+      # 4. Запуск тестов с явным указанием использовать локальный образ
       - name: Run tests
         run: |
           docker run --rm \
+            --name test-container \
             -v $(pwd)/allureres:/app/allureres \
-            test-playwright \
+            test-playwright:latest \
             pytest -s -v ./tests --alluredir=./allureres --browser=chromium --browser=firefox --browser=webkit
 
-      # 5. Сохранение артефактов
+      # 5. Сохранение отчетов
       - name: Upload Allure report
         if: always()
         uses: actions/upload-artifact@v4
@@ -43,10 +41,3 @@ jobs:
           name: allure-report
           path: ./allureres/
           retention-days: 7
-
-      # 6. Проверка результатов
-      - name: Check test results
-        if: ${{ failure() }}
-        run: |
-          echo "::error::Tests failed. Push to main branch rejected."
-          exit 1
