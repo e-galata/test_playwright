@@ -12,6 +12,7 @@ Automated test framework for web applications featuring:
 - **Pytest** for scalable test structure
 - **Pydantic** for request/response validation
 - API mocking and UI testing integration
+- Added cursor behaviour like a human
 
 ## 🛠 Setup
 1. Clone repo
