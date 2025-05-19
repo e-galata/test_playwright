@@ -84,7 +84,8 @@ def _make_api_request(url, method, expected_status, payload=None, timeout=10):
             method=method.upper(),
             url=url,
             json=payload,
-            timeout=timeout
+            timeout=timeout,
+            headers = {"x-api-key": "reqres-free-v1"}
         )
 
         # Checking the status code
@@ -185,13 +186,12 @@ def fixture_with_retry(fixture_func, attempts=3, delay=1):
 @pytest.fixture(autouse=True)
 def attach_screenshot_on_failure(request, page):
     yield
-    if request.node.rep_call.failed:
-        with allure.step("Attach screenshot on failure"):
-            allure.attach(
-                page.screenshot(),
-                name="Failure Screenshot",
-                attachment_type=allure.attachment_type.PNG
-            )
+    if hasattr(request.node, 'rep_call') and request.node.rep_call.failed:
+        allure.attach(
+            page.screenshot(full_page=True),
+            name=f"screenshot_{request.node.name}",
+            attachment_type=allure.attachment_type.PNG
+        )
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
