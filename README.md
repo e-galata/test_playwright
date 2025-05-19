@@ -65,7 +65,7 @@ Windows:
 scoop install allure
 ```
 
-View the repots with command:
+View the reports with command:
 ```bash
 allure serve ./allureres
 ```
