@@ -27,15 +27,9 @@ jobs:
             test-playwright:latest \
             pytest -s -v ./tests --alluredir=./allureres
 
-      - name: Install Allure CLI
+      - name: Setup Allure CLI
         if: always()
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y default-jre
-          wget https://github.com/allure-framework/allure2/releases/download/2.27.0/allure-2.27.0.tgz
-          tar -zxvf allure-2.27.0.tgz
-          sudo mv allure-2.27.0 /opt/allure
-          echo "/opt/allure/bin" >> $GITHUB_PATH
+        uses: simple-elf/setup-allure@v1
 
       - name: Generate Allure report
         if: always()
