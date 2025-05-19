@@ -1,4 +1,4 @@
-name: Run Tests with Docker
+name: Run Tests with Quality Gate
 
 on:
   push:
@@ -10,30 +10,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Клонирование репозитория
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Сборка и тегирование образа
       - name: Build and tag Docker image
         run: |
           docker build -t test-playwright .
           docker tag test-playwright test-playwright:latest
 
-      # 3. Проверка что образ создан
-      - name: Verify Docker image
-        run: docker images
-
-      # 4. Запуск тестов с явным указанием использовать локальный образ
       - name: Run tests
+        id: run_tests
         run: |
           docker run --rm \
             --name test-container \
             -v $(pwd)/allureres:/app/allureres \
             test-playwright:latest \
-            pytest -s -v ./tests --alluredir=./allureres --browser=chromium --browser=firefox --browser=webkit
+            pytest -s -v ./tests --alluredir=./allureres
 
-      # 5. Сохранение отчетов
+      - name: Analyze Allure report
+        id: quality_gate
+        if: always()
+        run: |
+          sudo apt-get install -y jq
+          
+          TOTAL=$(jq -r '.statistic.total' allureres/widgets/summary.json)
+          PASSED=$(jq -r '.statistic.passed' allureres/widgets/summary.json)
+          RATE=$(( PASSED * 100 / TOTAL ))
+          
+          echo "Test pass rate: $RATE%"
+          echo "rate=$RATE" >> $GITHUB_OUTPUT
+          
+          # Quality Gate (минимум 40% успешных)
+          [ "$RATE" -ge 40 ] || { echo "::error::Quality Gate failed: $RATE% < 90%"; exit 1; }
+
       - name: Upload Allure report
         if: always()
         uses: actions/upload-artifact@v4
@@ -41,3 +50,9 @@ jobs:
           name: allure-report
           path: ./allureres/
           retention-days: 7
+
+      - name: Show result
+        if: always()
+        run: |
+          echo "Quality Gate status: ${{ steps.quality_gate.outcome }}"
+          echo "Pass rate: ${{ steps.quality_gate.outputs.rate }}%"
