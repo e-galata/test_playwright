@@ -55,8 +55,8 @@ jobs:
           echo "Test pass rate: $RATE%"
           echo "rate=$RATE" >> $GITHUB_OUTPUT
           
-          # Quality Gate (минимум 40% успешных)
-          [ "$RATE" -ge 40 ] || { echo "::error::Quality Gate failed: $RATE% < 90%"; exit 1; }
+          # Quality Gate (минимум 101% успешных)
+          [ "$RATE" -ge 101 ] || { echo "::error::Quality Gate failed: $RATE% < 101%"; exit 1; }
 
       - name: Upload Allure report
         if: always()
