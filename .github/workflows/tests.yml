@@ -29,7 +29,13 @@ jobs:
 
       - name: Setup Allure CLI
         if: always()
-        uses: simple-elf/setup-allure@v1
+        run: |
+          sudo apt-get update -yq
+          sudo apt-get install -yq --no-install-recommends openjdk-17-jre-headless
+          curl -sSLo allure.zip https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/2.27.0/allure-commandline-2.27.0.zip
+          unzip -q allure.zip -d /opt/
+          echo "/opt/allure-2.27.0/bin" >> $GITHUB_PATH
+          rm -f allure.zip
 
       - name: Generate Allure report
         if: always()
