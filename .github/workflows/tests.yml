@@ -27,14 +27,29 @@ jobs:
             test-playwright:latest \
             pytest -s -v ./tests --alluredir=./allureres
 
+      - name: Install Allure CLI
+        if: always()
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-jre
+          wget https://github.com/allure-framework/allure2/releases/download/2.27.0/allure-2.27.0.tgz
+          tar -zxvf allure-2.27.0.tgz
+          sudo mv allure-2.27.0 /opt/allure
+          echo "/opt/allure/bin" >> $GITHUB_PATH
+
+      - name: Generate Allure report
+        if: always()
+        run: |
+          allure generate allureres -o allure-report --clean
+
       - name: Analyze Allure report
         id: quality_gate
         if: always()
         run: |
           sudo apt-get install -y jq
           
-          TOTAL=$(jq -r '.statistic.total' allureres/widgets/summary.json)
-          PASSED=$(jq -r '.statistic.passed' allureres/widgets/summary.json)
+          TOTAL=$(jq -r '.statistic.total' allure-report/widgets/summary.json)
+          PASSED=$(jq -r '.statistic.passed' allure-report/widgets/summary.json)
           RATE=$(( PASSED * 100 / TOTAL ))
           
           echo "Test pass rate: $RATE%"
@@ -48,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
-          path: ./allureres/
+          path: ./allure-report/
           retention-days: 7
 
       - name: Show result
